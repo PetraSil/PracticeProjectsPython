@@ -1,2 +1,2 @@
 # PracticeProjectsPython
-Projects that I have done in Pythonfor fun and practice.
+Projects that I have done in Python for fun and practice.
