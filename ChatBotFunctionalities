@@ -252,7 +252,7 @@ def error(bot, update, error):
 
 
 def main():
-    token = '436271886:AAHSnFyiM5TKyv1qgTr3diAwgww5fAhXF1o'
+    token = ''
 
     """Start the bot."""
     # Create the EventHandler and pass it your bot's token.
