@@ -1,0 +1,297 @@
+# had some encoding problems with Unix, this should fix it
+# do not uncomment
+# -*- coding: ISO-8859-1 -*-
+
+# import modules needed
+
+from bs4 import BeautifulSoup as bs
+import requests
+import text as tx
+import telegram
+import os
+
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
+import logging
+
+# Enable logging
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                    level=logging.INFO)
+
+logger = logging.getLogger(__name__)
+
+
+# Define a few command handlers. These usually take the two arguments bot and
+# update. Error handlers also receive the raised TelegramError object in error.
+def start(bot, update):
+    """Send a message when the command /start is issued."""
+    update.message.reply_text('Hi!')
+
+def help(bot, update):
+    """Send a message when the command /help is issued."""
+    update.message.reply_text(tx.commands["help"])
+
+def menuHelp(bot, update):
+    """Send a message when the command /menuHelp is issued."""
+    update.message.reply_text(tx.commands["menu"])
+
+def fileHelp(bot, update):
+    """Send a message when the command /fileHelp is issued."""
+    update.message.reply_text(tx.commands["fileHelp"])
+
+#-----------------------webscrape
+
+def getMenu(argument):
+    # define where to get the data from
+    website = requests.get('http://www.hys.net/ruokalista.xml').text
+    core = bs(website, 'html.parser')
+
+    # define the tags we want from the data
+    # turn the data into lists (days and menu in their own)
+    day = core.find_all(['title'])
+    food = core.find_all(['description'])
+
+    # remove useless text from the beginning
+    del(day[0])
+    del(food[0])
+
+    y = day
+    o = day
+
+    # remove tags we do not want to show
+    for i in range(len(day)):
+        y[i]=str(day[i])+str(food[i])
+    
+    # add new lines in place of some commas etc. to prettify the print
+    for i in range(len(y)):
+        o[i] = y[i].replace('\n','').replace('<title>','').replace('</title>','')\
+              .replace('<description>', '').replace('</description>','')\
+              .replace('<br />','', 2).replace(',<br />','')\
+              .replace(']]&gt;','')\
+              .replace('<![CDATA[','\n\n').replace(']]>','').replace(',','\n')+"\n\n\n"
+    if "all" in argument:
+        return "".join(o)
+    else:
+        return o[0]
+       
+   
+        
+def menu(bot, update, args):
+    update.message.reply_text(getMenu(args))
+
+#-----------------------webscrape ends
+
+#-----------------------file begins
+
+
+def saveDocument(bot, update):
+    ##When the bot detectd a document is send to it
+    ##checks the file id and name then saves the document
+    ##into the Documents directory
+    fileId = update.message.document.file_id
+    fileName = update.message.document.file_name
+    newDocument = bot.get_file(fileId)
+    newDocument.download(str(fileName))
+    os.rename(fileName, "Documents/"+fileName)
+    print ("New Document Uploaded with id:", fileId, "\nAnd Name:", fileName)
+    
+    
+def savePhoto(bot, update):
+    ##When the bot detectd an Image is send to it
+    ##checks the file id, the caption and the file type then saves the Image
+    ##into the Photos directory using the caption as the file name
+    fileId = update.message.photo[-1].file_id
+    newPhoto = bot.get_file(fileId)
+    fileMime = newPhoto.file_path.split('.')[-1]
+    fileName = update.message.caption+"."+fileMime
+    newPhoto.download(str(fileName))
+    os.rename(fileName, "Photos/"+fileName)
+    print ("New Photo Uploaded with id:", fileId, "\nAnd Name:", fileName)
+    
+    
+def saveVideo(bot, update):
+    ##When the bot detectd an Video is send to it
+    ##checks the file id, the caption and the file type then saves the Video
+    ##into the Videos directory using the caption as the file name
+    fileId = update.message.video.file_id
+    newVideo = bot.get_file(fileId)
+    fileMime = newVideo.file_path.split('.')[-1]
+    fileName = update.message.caption+"."+fileMime
+    newVideo.download(str(fileName))
+    os.rename(fileName, "Videos/"+fileName)
+    print ("New Video Uploaded with id:", fileId, "\nAnd Name:", fileName)
+    
+    
+def getDocument(bot, update, args):
+    ##Checks the Documents directory for the given file name
+    ##if the file is found the bots sends the document to the current chat
+    ##if the file name is not found or not given sends an error message to the chat
+    bot.send_chat_action(chat_id=update.message.chat_id, action=telegram.ChatAction.UPLOAD_DOCUMENT)
+    if args:
+        if args[0] in os.listdir('Documents'):
+            chatId = update.message.chat_id
+            documentToSend = "Documents/"+str(args[0])
+            bot.send_document(chat_id=chatId, document=open(documentToSend, 'rb'))
+            print("Document sent from", documentToSend)
+        else:
+            update.message.reply_text(str("No document named "+str(args[0])+" found"))
+    else:
+        update.message.reply_text("No filename given")
+        
+    
+def getPhoto(bot, update, args):
+    ##Checks the Photos directory for the given file name
+    ##if the file is found the bots sends the Image to the current chat
+    ##if the file name is not found or not given sends an error message to the chat
+    bot.send_chat_action(chat_id=update.message.chat_id, action=telegram.ChatAction.UPLOAD_PHOTO)
+    if args:
+        if args[0] in os.listdir('Photos'):
+            chatId = update.message.chat_id
+            photoToSend = "Photos/"+str(args[0])
+            bot.send_photo(chat_id=chatId, photo=open(photoToSend, 'rb'))
+            print("Photo sent from", photoToSend)
+        else:
+            update.message.reply_text(str("No photo named "+str(args[0])+" found"))
+    else:
+        update.message.reply_text("No filename given")
+        
+
+def getVideo(bot, update, args):
+    ##Checks the Videos directory for the given file name
+    ##if the file is found the bots sends the video to the current chat
+    ##if the file name is not found or not given sends an error message to the chat
+    bot.send_chat_action(chat_id=update.message.chat_id, action=telegram.ChatAction.UPLOAD_VIDEO)
+    if args:
+        if args[0] in os.listdir('Videos'):
+            chatId = update.message.chat_id
+            videoToSend = "Videos/"+str(args[0])
+            bot.send_video(chat_id=chatId, video=open(videoToSend, 'rb'))
+            print("Video sent from", videoToSend)
+        else:
+            update.message.reply_text(str("No video named "+str(args[0])+" found"))
+    else:
+        update.message.reply_text("No filename given")
+        
+
+def findFileHandler(path):
+    toPrint = "Found files include: "
+    if path != 'All':
+        fileList = os.listdir(path)
+        print(fileList)
+        for item in fileList:
+            print(item)
+            toPrint += str(item) + " "
+        return(toPrint)
+    else:
+        path = 'Documents'
+        fileList = os.listdir(path)
+        print(fileList)
+        toPrint += "\nDocuments: "
+        for item in fileList:
+            print(item)
+            toPrint += str(item) + " "
+            
+        path = 'Photos'
+        fileList = os.listdir(path)
+        print(fileList)
+        toPrint += "\nPhotos: "
+        for item in fileList:
+            print(item)
+            toPrint += str(item) + " "
+            
+        path = 'Videos'
+        fileList = os.listdir(path)
+        print(fileList)
+        toPrint += "\nVideos: "
+        for item in fileList:
+            print(item)
+            toPrint += str(item) + " "      
+        return(toPrint)
+    
+        
+def findFile(bot, update, args):
+    ##Checks the given argument for the command
+    ##if the argument defines a file type the bot searches the appropriate directory
+    ##for all the files in the folder then messages the chat with the results
+    ##if the argument does not define a appropriate filetype but still contains
+    ##an argument sends an error message to the chat
+    ##if no argument is given checks all designated folders for any files
+    ##and messages the chat with the results
+    bot.send_chat_action(chat_id=update.message.chat_id, action=telegram.ChatAction.TYPING)
+    if args:
+        fileType = args[0].lower()
+        print(fileType)
+        if fileType == 'document' or fileType == 'documents':
+            print('Finding files in /Documents')
+            update.message.reply_text(findFileHandler('Documents'))
+        elif fileType == 'photo' or fileType == 'photos':
+            print('Finding files in /Photos')
+            update.message.reply_text(findFileHandler('Photos'))
+        elif fileType == 'video' or fileType == 'videos':
+            print('Finding files in /Videos')
+            update.message.reply_text(findFileHandler('Videos'))
+        elif fileType == 'all':
+            print('Finding all files')
+            update.message.reply_text(findFileHandler('All'))
+        else:
+            update.message.reply_text('file type to search must defined as: document, photo or video')
+    else:
+        print('Finding all files')
+        update.message.reply_text(findFileHandler('All'))
+    
+
+#-----------------------file ends
+
+def echo(bot, update):
+    """Echo the user message."""
+    update.message.reply_text(update.message.text)
+
+
+def error(bot, update, error):
+    """Log Errors caused by Updates."""
+    logger.warning('Update "%s" caused error "%s"', update, error)
+
+
+def main():
+    token = '436271886:AAHSnFyiM5TKyv1qgTr3diAwgww5fAhXF1o'
+
+    """Start the bot."""
+    # Create the EventHandler and pass it your bot's token.
+    updater = Updater(token)
+
+    # Get the dispatcher to register handlers
+    dp = updater.dispatcher
+
+    # on different commands - answer in Telegram
+    dp.add_handler(CommandHandler("start", start))
+    dp.add_handler(CommandHandler("help", help))
+    dp.add_handler(CommandHandler("menu", menu, pass_args=True))
+    dp.add_handler(CommandHandler("menuHelp", menuHelp))
+    #dp.add_handler(MessageHandler(Filters.audio, saveAudio))
+    dp.add_handler(MessageHandler(Filters.document, saveDocument))
+    dp.add_handler(MessageHandler(Filters.photo, savePhoto))
+    dp.add_handler(MessageHandler(Filters.video, saveVideo))
+    #dp.add_handler(CommandHandler("GetAudio", getAudio, pass_args=True))
+    dp.add_handler(CommandHandler("GetDocument", getDocument, pass_args=True))
+    dp.add_handler(CommandHandler("GetPhoto", getPhoto, pass_args=True))
+    dp.add_handler(CommandHandler("GetVideo", getVideo, pass_args=True))
+    dp.add_handler(CommandHandler("FindFile", findFile, pass_args=True))
+    dp.add_handler(CommandHandler("fileHelp", fileHelp))
+
+
+    # on noncommand i.e message - echo the message on Telegram
+    dp.add_handler(MessageHandler(Filters.text, echo))
+
+    # log all errors
+    dp.add_error_handler(error)
+
+    # Start the Bot
+    updater.start_polling()
+
+    # Run the bot until you press Ctrl-C or the process receives SIGINT,
+    # SIGTERM or SIGABRT. This should be used most of the time, since
+    # start_polling() is non-blocking and will stop the bot gracefully.
+    updater.idle()
+
+
+if __name__ == '__main__':
+    main()
