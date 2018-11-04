@@ -6,7 +6,8 @@ How to run:
 This app was made using only Python and what standard libraries came with it. It is split 
 into two parts, the main code and the GUI code.
 Tkinter was used to create the UI (not an easy task to make it look good).
-In hindsight, using another GUI tool such as Kivy, would create more aesthetically pleasing results.
+In hindsight, using another GUI tool such as Kivy, would create more aesthetically pleasing results,
+but at least it's functional!
 In the end this was a good learning experience and the next Python app I will make, will use some newer technologies.
 
 
