@@ -1,3 +1,8 @@
+UPDATE!!
+
+Looks like I'm not that good at compiling Python into an .exe file yet, so it would seem you need to download all the files here
+along with the .exe. I'll try and get this fixed once I have time.
+
 How to run:
   1. Simply download all the files and run the excecutable file
   2. Follow the in-app instructions
@@ -9,5 +14,3 @@ Tkinter was used to create the UI (not an easy task to make it look good).
 In hindsight, using another GUI tool such as Kivy, would create more aesthetically pleasing results,
 but at least it's functional!
 In the end this was a good learning experience and the next Python app I will make, will use some newer technologies.
-
-
